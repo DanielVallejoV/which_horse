@@ -4,5 +4,4 @@ matplotlib
 numpy
 scikit-learn
 plotly
-jupyter
 streamlit
