@@ -93,9 +93,9 @@ def transforming_data(df, jockey_id=False, tainer_id=False):
         df_grouped.drop(columns=['win_or_lose'], inplace=True)
         df = df.merge(df_grouped, how='left', left_on='tainer_id', right_on='tainer_id')
     df.drop(columns=['jockey_id', 'tainer_id', 'margin', 'dslr','rating_oficial',
-                    'last_traded_price', 'finish_position', #'event_number',
-                    'pre_race_master_rating_int',
-                    'post_time'], axis=1, inplace=True)# for now
+                     'last_traded_price', 'finish_position', #'event_number',
+                     'pre_race_master_rating_int',
+                     'post_time'], axis=1, inplace=True) # for now
     df.dropna(inplace=True) #instead of imputer for now
     df_train = df[(df['date'].dt.year != 2022) & (df['date'].dt.year != 2023)]
     df_val = df[df['date'].dt.year == 2022]

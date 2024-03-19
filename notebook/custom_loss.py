@@ -1,4 +1,3 @@
-
 import tensorflow as tf
 from tensorflow.keras import backend as K
 
@@ -18,3 +17,4 @@ def custom_loss_function(y_true, y_pred):
 
 
 #adjusted for new odds y
+# get_custom_objects().update({"custom_loss_function": custom_loss_function})
