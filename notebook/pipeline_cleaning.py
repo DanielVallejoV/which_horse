@@ -1,10 +1,7 @@
 import pandas as pd
-
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
-
 from sklearn.preprocessing import StandardScaler
-
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.pipeline import Pipeline
 
@@ -25,13 +22,13 @@ def clean_data(df):
             'run_7_race_type', 'run_7_race_class', 'run_7_race_class_normalised', 'run_7_track_type', 'run_7_win_lose',
             'run_7_dsr', 'run_8_raw_post_race_rating_int', 'run_8_raw_post_race_rating_symbol', 'run_8_final_rating_int',
             'run_8_race_type', 'run_8_race_class', 'run_8_race_class_normalised', 'run_8_track_type', 'run_8_win_lose',
-            'run_8_dsr', 'meeting_name', 'country_code', 'distance_unit','distance_furlongs', 'prize_money_currency',
+            'run_8_dsr', 'country_code', 'distance_unit','distance_furlongs', 'prize_money_currency',
             'jockey_allowance_unit', 'handicap_weight_unit', 'jockey_name', 'trainer_name',
             'pre_race_master_rating_symbol', 'post_race_master_rating_symbol', 'post_race_master_rating_int',
-            'bet365_odds', 'pmu_odds', #'meeting_id', 
-            'distance_raw_furlongs', 'number', #'horse_id', 
-            'age', 'dam', 'sire',
+            'bet365_odds', 'pmu_odds', 'meeting_name', #'meeting_id','horse_id',
+            'distance_raw_furlongs', 'number',  'age', 'dam', 'sire',
             'betfair_starting_price', 'Date', 'id_lewagon'], inplace=True)
+    print("drop done")
     df['gear'] = df['gear'].apply(lambda x: 0 if pd.isna(x) else 1)
     df['rating_oficial'] = df['OffR'].fillna(df['official rating'])
     df['rating_oficial'] = df['official rating'].fillna(df['OffR'])
@@ -48,6 +45,7 @@ def clean_data(df):
     df_sorted.drop(columns=['failed_to_finish_reason', 'horse_name','birth_date', 'official rating', 'OffR'], inplace=True)
     df_sorted.columns = [col.lower().replace(' ', '_') for col in df_sorted.columns]
 
+    print("step two")
     colunas = ['15_mins', '10_mins', '5_mins', '3_mins', '2_mins', '1_min_']
 
     df_sem_nan = df_sorted.dropna(subset=colunas, how='all')
@@ -65,11 +63,35 @@ def clean_data(df):
         df_sem_nan['3_mins'] = df_sem_nan['3_mins'].fillna(df_sem_nan['2_mins'])
         df_sem_nan['2_mins'] = df_sem_nan['2_mins'].fillna(df_sem_nan['1_min_'])
         number_of_nas = df_sem_nan[colunas].isna().sum().sum()
+
+    print("Cleaned the data")
     return df_sem_nan
 
+def classify_group(win_or_lose, df):
+    quantiles = df['win_or_lose'].quantile([0.2, 0.4, 0.6, 0.8])
+    if win_or_lose <= quantiles[0.2]:
+        return 5
+    elif win_or_lose <= quantiles[0.4]:
+        return 4
+    elif win_or_lose <= quantiles[0.6]:
+        return 3
+    elif win_or_lose <= quantiles[0.8]:
+        return 2
+    else:
+        return 1
 
-def transforming_data(df):
+def transforming_data(df, jockey_id=False, tainer_id=False):
     df['date'] = pd.to_datetime(df['date'])
+    if jockey_id == True:
+        df_grouped = df.groupby(by=['jockey_id']).agg({'win_or_lose': 'sum'}).sort_values(by='win_or_lose', ascending=False)
+        df_grouped['jockey_class'] = df_grouped['win_or_lose'].apply(classify_group, args=(df_grouped,))
+        df_grouped.drop(columns=['win_or_lose'], inplace=True)
+        df = df.merge(df_grouped, how='left', left_on='jockey_id', right_on='jockey_id')
+    if tainer_id == True:
+        df_grouped = df.groupby(by=['tainer_id']).agg({'win_or_lose': 'sum'}).sort_values(by='win_or_lose', ascending=False)
+        df_grouped['tainer_class'] = df_grouped['win_or_lose'].apply(classify_group, args=(df_grouped,))
+        df_grouped.drop(columns=['win_or_lose'], inplace=True)
+        df = df.merge(df_grouped, how='left', left_on='tainer_id', right_on='tainer_id')
     df.drop(columns=['jockey_id', 'tainer_id', 'margin', 'dslr','rating_oficial',
                      'last_traded_price', 'finish_position', #'event_number',
                      'pre_race_master_rating_int',
